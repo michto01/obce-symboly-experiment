@@ -1,4 +1,6 @@
 import * as readline from 'readline';
+import * as util from 'util';
+
 import axios from 'axios';
 import { load } from 'cheerio';
 
@@ -46,12 +48,43 @@ async function searchREKOS(
     const $ = load(res.data);
 
     if (helper_rekos_not_found($('#main-content div p').text())) {
-      console.warn("REKOS data not found!");
+      //console.warn("REKOS data not found!");
       return null;
     }
 
-    const zebra = $('.zebra tr')
+    const zebra = $('.zebra tr td:nth-child(1) a').attr('href');
+    const zebra_url = `https://rekos.psp.cz${zebra}`;
+    const content = await inspectREKOS(zebra_url);
+    return {
+      url: zebra_url,
+      content: content
+    };
 }
+
+async function inspectREKOS(
+  url : string | null
+): Promise<any | null> {
+  if (url == null) return null;
+
+  const res = await axios.get(`${url}`);
+  const $ = load(res.data);
+
+  const rdata = $('div#main-content > div.column');
+  var result : any = {};
+
+  result['znak'] = {
+    popis: $(rdata.find('.first p')[0]).text(),
+    url: `https://rekos.psp.cz${rdata.find('.first p a').attr('href')}`
+  }
+
+  result['vlajka'] = {
+    popis: $(rdata.find('.second p')[1]).text(),
+    url: `https://rekos.psp.cz${rdata.find('.second p a').attr('href')}`
+  }
+  
+  return result;
+}
+
 
 async function getSymbolMetadata(
   code : number
@@ -61,9 +94,9 @@ async function getSymbolMetadata(
   await axios.get(`${CUZK_URL}${code}`).then(async (res) => {
     var scraps = inspectCZUK(res.data);
     scraps['REKOS'] = await searchREKOS(scraps.name, scraps.pou);
-    //const jollo = await searchREKOS(scraps.name, scraps.pou+"s") as number;
-    console.log(scraps);
+    console.log(util.inspect(scraps, false, Infinity, true));
 
+    return scraps;
   }).catch((reason) => {
     console.error(reason);
   });

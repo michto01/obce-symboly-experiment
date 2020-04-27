@@ -78,7 +78,7 @@ async function inspectREKOS(
   }
 
   result['vlajka'] = {
-    popis: $(rdata.find('.second p')[1]).text(),
+    popis: $(rdata.find('.second p')[0]).text(),
     url: `https://rekos.psp.cz${rdata.find('.second p a').attr('href')}`
   }
   
